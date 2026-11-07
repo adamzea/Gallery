@@ -1,4 +1,6 @@
 [versions]
+#Testing
+junit = "4.13.2"
 #jetbrains
 kotlin = "2.3.10"
 #KSP
@@ -43,6 +45,8 @@ app-build-minimumSDK = "26"
 app-build-javaVersion = "VERSION_17"
 app-build-kotlinJVMTarget = "17"
 [libraries]
+#Testing
+junit = { module = "junit:junit", version.ref = "junit" }
 #AndroidX
 androidx-lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime", version.ref = "androidx-lifecycle" }
 androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3Exoplayer" }

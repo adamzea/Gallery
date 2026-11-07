@@ -3,6 +3,7 @@ package org.fossify.gallery.extensions
 import android.app.Activity
 import android.content.ContentProviderOperation
 import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Bitmap.CompressFormat
@@ -47,6 +48,10 @@ import org.fossify.gallery.dialogs.ResizeWithPathDialog
 import org.fossify.gallery.helpers.DIRECTORY
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.TEMP_FOLDER_NAME
+import org.fossify.gallery.helpers.FAVORITE_RATING_STARS
+import org.fossify.gallery.helpers.rating.FileChannelData
+import org.fossify.gallery.helpers.rating.MediaRating
+import org.fossify.gallery.helpers.rating.RatingResult
 import org.fossify.gallery.models.DateTaken
 import java.io.*
 import java.text.SimpleDateFormat
@@ -749,6 +754,94 @@ fun Activity.fileRotatedSuccessfully(path: String, lastModified: Long) {
     glide.clearDiskCache()
     runOnUiThread {
         glide.clearMemory()
+    }
+}
+
+private val ratingLock = Any()
+
+/**
+ * Writes the favorite star rating into the metadata of each file (or clears it when [isFavorite] is false).
+ * Files in formats without rating support are skipped. Call from the UI thread, the work runs in the background.
+ */
+fun BaseSimpleActivity.updateFavoriteRatings(paths: List<String>, isFavorite: Boolean) {
+    val supportedPaths = paths.filter { MediaRating.formatOf(it) != null }
+    if (supportedPaths.isEmpty()) {
+        return
+    }
+
+    val stars = if (isFavorite) FAVORITE_RATING_STARS else null
+    ensureWriteAccessForAll(supportedPaths.map { it.getParentPath() }.distinct()) {
+        ensureBackgroundThread {
+            val failed = supportedPaths.count { !writeFileRating(it, stars) }
+            if (failed > 0) {
+                toast(R.string.rating_not_saved)
+            }
+        }
+    }
+}
+
+private fun BaseSimpleActivity.ensureWriteAccessForAll(paths: List<String>, callback: () -> Unit) {
+    if (paths.isEmpty()) {
+        callback()
+    } else {
+        ensureWriteAccess(paths.first()) {
+            ensureWriteAccessForAll(paths.drop(1), callback)
+        }
+    }
+}
+
+/**
+ * Sets the star rating stored in the file to [stars], or removes it if null. Must run on a background thread.
+ * Returns false if the file couldn't be updated.
+ */
+fun BaseSimpleActivity.writeFileRating(path: String, stars: Int?): Boolean {
+    val format = MediaRating.formatOf(path) ?: return true
+    synchronized(ratingLock) {
+        val file = File(path)
+        val oldLastModified = file.lastModified()
+        val result = try {
+            openRandomAccessData(path).use { MediaRating.write(it, format, stars) }
+        } catch (e: Exception) {
+            RatingResult.FAILED
+        }
+
+        if (result == RatingResult.CHANGED) {
+            if (config.keepLastModified && oldLastModified != 0L) {
+                file.setLastModified(oldLastModified)
+                updateLastModified(path, oldLastModified)
+            } else {
+                updateLastModified(path, file.lastModified())
+            }
+            rescanPaths(arrayListOf(path))
+        }
+        return result != RatingResult.FAILED
+    }
+}
+
+/** Opens a file for in-place reading and writing, going through the storage access framework where needed. */
+private fun Context.openRandomAccessData(path: String): FileChannelData {
+    fun fromUri(uri: Uri): FileChannelData {
+        val descriptor = contentResolver.openFileDescriptor(uri, "rw") ?: throw IOException("Cannot open $path")
+        val input = FileInputStream(descriptor.fileDescriptor)
+        val output = FileOutputStream(descriptor.fileDescriptor)
+        return FileChannelData(input.channel, output.channel, listOf(input, output, descriptor))
+    }
+
+    fun fromFile(): FileChannelData {
+        val file = RandomAccessFile(path, "rw")
+        return FileChannelData(file.channel, file.channel, listOf(file))
+    }
+
+    return when {
+        isRestrictedSAFOnlyRoot(path) -> fromUri(getAndroidSAFUri(path))
+        needsStupidWritePermissions(path) -> fromUri(createDocumentUriFromRootTree(path))
+        isAccessibleWithSAFSdk30(path) -> try {
+            fromUri(createDocumentUriUsingFirstParentTreeUri(path))
+        } catch (e: Exception) {
+            fromFile()
+        }
+
+        else -> fromFile()
     }
 }
 

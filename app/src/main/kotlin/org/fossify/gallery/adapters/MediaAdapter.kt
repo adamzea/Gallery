@@ -78,6 +78,7 @@ import org.fossify.gallery.extensions.tryCopyMoveFilesTo
 import org.fossify.gallery.extensions.updateDBMediaPath
 import org.fossify.gallery.extensions.updateFavorite
 import org.fossify.gallery.extensions.updateFavoritePaths
+import org.fossify.gallery.extensions.updateFavoriteRatings
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
@@ -376,6 +377,7 @@ class MediaAdapter(
     }
 
     private fun toggleFavorites(add: Boolean) {
+        activity.updateFavoriteRatings(getSelectedItems().map { it.path }, add)
         ensureBackgroundThread {
             getSelectedItems().forEach {
                 it.isFavorite = add

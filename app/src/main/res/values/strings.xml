@@ -254,6 +254,7 @@
 
     <!-- Errors -->
     <string name="failed_to_load_media">Failed to load media.</string>
+    <string name="rating_not_saved">Could not update the star rating stored in the file.</string>
     <string name="file_is_malformed_or_corrupted">File is malformed or corrupted.</string>
     <string name="media_exceeds_device_capabilities">Media exceeds device capabilities.</string>
     <string name="unsupported_format">Unsupported format.</string>

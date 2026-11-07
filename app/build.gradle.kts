@@ -175,6 +175,7 @@ detekt {
 
 dependencies {
     implementation(libs.fossify.commons)
+    testImplementation(libs.junit)
     implementation(libs.androidx.print)
     implementation(libs.android.image.cropper)
     implementation(libs.exif)

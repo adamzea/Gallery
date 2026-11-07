@@ -263,6 +263,9 @@ const val FOLDER_STYLE_ROUNDED_CORNERS = 2
 // animations
 const val THUMBNAIL_FADE_DURATION_MS = 150
 
+// star rating written into a file's metadata when it is marked as favorite
+const val FAVORITE_RATING_STARS = 4
+
 fun getPermissionToRequest() = if (isTiramisuPlus()) PERMISSION_READ_MEDIA_IMAGES else PERMISSION_WRITE_STORAGE
 
 fun getPermissionsToRequest(): Collection<Int> {
