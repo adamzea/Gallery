@@ -12,10 +12,16 @@ internal object JpegRating {
     private const val MARKER_APP1 = 0xE1
     private const val MAX_SEGMENT_LENGTH = 0xFFFF
 
-    private class Layout(val xmpStart: Int, val xmpEnd: Int, val insertPosition: Int)
+    private class Layout(val xmpStart: Int, val xmpEnd: Int, val insertPosition: Int, val exifPayloadStart: Int, val exifEnd: Int)
 
-    fun transform(jpeg: ByteArray, stars: Int?): ByteArray? {
-        val layout = parse(jpeg) ?: return null
+    fun transform(original: ByteArray, stars: Int?): ByteArray? {
+        val layout = parse(original) ?: return null
+        // EXIF rating tags are fixed size and updated in place, the XMP segment may change size
+        val jpeg = original.copyOf()
+        if (layout.exifPayloadStart != -1) {
+            ExifRating.patchJpegExif(jpeg, layout.exifPayloadStart, layout.exifEnd, stars)
+        }
+
         val hasXmp = layout.xmpStart != -1
         val oldXmp = if (hasXmp) {
             val payloadStart = layout.xmpStart + 4 + XMP_HEADER.size
@@ -53,6 +59,8 @@ internal object JpegRating {
 
         var xmpStart = -1
         var xmpEnd = -1
+        var exifPayloadStart = -1
+        var exifEnd = -1
         // A new XMP segment goes after the leading JFIF (APP0) and EXIF (APP1) segments
         var insertPosition = 2
         var inLeadingAppSegments = true
@@ -97,7 +105,13 @@ internal object JpegRating {
                 xmpEnd = segmentEnd
             }
 
-            val isLeadingApp = marker == MARKER_APP0 || (marker == MARKER_APP1 && data.startsWithAt(payloadStart, EXIF_HEADER, segmentEnd))
+            val isExif = marker == MARKER_APP1 && data.startsWithAt(payloadStart, EXIF_HEADER, segmentEnd)
+            if (isExif && exifPayloadStart == -1) {
+                exifPayloadStart = payloadStart
+                exifEnd = segmentEnd
+            }
+
+            val isLeadingApp = marker == MARKER_APP0 || isExif
             if (inLeadingAppSegments && isLeadingApp) {
                 insertPosition = segmentEnd
             } else {
@@ -107,6 +121,6 @@ internal object JpegRating {
             pos = segmentEnd
         }
 
-        return Layout(xmpStart, xmpEnd, insertPosition)
+        return Layout(xmpStart, xmpEnd, insertPosition, exifPayloadStart, exifEnd)
     }
 }

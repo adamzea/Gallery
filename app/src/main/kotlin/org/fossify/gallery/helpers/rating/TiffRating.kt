@@ -34,6 +34,11 @@ internal object TiffRating {
         val entries = data.read(ifdOffset + 2, count * ENTRY_SIZE)
         val nextIfd = data.read(ifdOffset + 2 + count * ENTRY_SIZE, 4)
 
+        val exifChanged = ExifRating.patchEntries(entries, 0, count, order.littleEndian, stars)
+        if (exifChanged) {
+            data.write(ifdOffset + 2, entries)
+        }
+
         val xmpIndex = (0 until count).firstOrNull { order.u16(entries, it * ENTRY_SIZE) == TAG_XMP }
         var oldXmpOffset = 0L
         var oldXmpLength = 0
@@ -57,7 +62,7 @@ internal object TiffRating {
 
         val newXmp = XmpRating.updateOrCreate(oldXmp, stars)
         if (newXmp == oldXmp || newXmp == null) {
-            return RatingResult.UNCHANGED
+            return if (exifChanged) RatingResult.CHANGED else RatingResult.UNCHANGED
         }
 
         val newBytes = newXmp.toByteArray(Charsets.UTF_8)

@@ -251,6 +251,7 @@
     <string name="manage_bottom_actions">Manage visible bottom actions</string>
     <string name="toggle_favorite">Toggle favorite</string>
     <string name="toggle_file_visibility">Toggle file visibility</string>
+    <string name="save_favorite_rating">Save favorites as a 4-star rating in the file</string>
 
     <!-- Errors -->
     <string name="failed_to_load_media">Failed to load media.</string>

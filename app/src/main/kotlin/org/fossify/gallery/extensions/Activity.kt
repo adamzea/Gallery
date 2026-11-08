@@ -760,10 +760,15 @@ fun Activity.fileRotatedSuccessfully(path: String, lastModified: Long) {
 private val ratingLock = Any()
 
 /**
- * Writes the favorite star rating into the metadata of each file (or clears it when [isFavorite] is false).
- * Files in formats without rating support are skipped. Call from the UI thread, the work runs in the background.
+ * If enabled in the settings, writes the favorite star rating into the metadata of each file (or clears it when
+ * [isFavorite] is false). Files in formats without rating support are skipped.
+ * Call from the UI thread, the work runs in the background.
  */
 fun BaseSimpleActivity.updateFavoriteRatings(paths: List<String>, isFavorite: Boolean) {
+    if (!config.saveFavoriteRating) {
+        return
+    }
+
     val supportedPaths = paths.filter { MediaRating.formatOf(it) != null }
     if (supportedPaths.isEmpty()) {
         return

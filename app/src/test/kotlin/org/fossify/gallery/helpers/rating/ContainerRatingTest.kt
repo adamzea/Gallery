@@ -84,6 +84,23 @@ class ContainerRatingTest {
     fun dngBigEndian() = dngRoundTrip(false)
 
     @Test
+    fun dngUpdatesExistingExifRatingTag() {
+        // IFD0 with only a Rating tag (SHORT 0), little-endian
+        val w = ByteWriter().bytes("II".toByteArray()).u16le(42).u32le(8)
+            .u16le(1).u16le(0x4746).u16le(3).u32le(1).u32le(0).u32le(0)
+            .bytes(ByteArray(16))
+        val data = ByteArrayData(w.toByteArray())
+
+        assertEquals(RatingResult.CHANGED, MediaRating.write(data, RatingFormat.DNG, 4))
+        val ifd = Tiff(true).ifd0(data.bytes)
+        assertEquals(4L, ifd[0x4746]!!.second)
+        assertTrue(Tiff(true).xmp(data.bytes)!!.contains("xmp:Rating=\"4\""))
+
+        assertEquals(RatingResult.CHANGED, MediaRating.write(data, RatingFormat.DNG, null))
+        assertEquals(0L, Tiff(true).ifd0(data.bytes)[0x4746]!!.second)
+    }
+
+    @Test
     fun dngWithoutXmpUnchangedWhenClearing() {
         assertEquals(RatingResult.UNCHANGED, MediaRating.write(ByteArrayData(Tiff(true).build()), RatingFormat.DNG, null))
         assertEquals(RatingResult.FAILED, MediaRating.write(ByteArrayData(ascii("not a tiff file")), RatingFormat.DNG, 4))

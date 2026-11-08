@@ -72,6 +72,10 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(SHOW_HIDDEN_MEDIA, false)
         set(showHiddenFolders) = prefs.edit().putBoolean(SHOW_HIDDEN_MEDIA, showHiddenFolders).apply()
 
+    var saveFavoriteRating: Boolean
+        get() = prefs.getBoolean(SAVE_FAVORITE_RATING, false)
+        set(saveFavoriteRating) = prefs.edit().putBoolean(SAVE_FAVORITE_RATING, saveFavoriteRating).apply()
+
     var temporarilyShowHidden: Boolean
         get() = prefs.getBoolean(TEMPORARILY_SHOW_HIDDEN, false)
         set(temporarilyShowHidden) = prefs.edit().putBoolean(TEMPORARILY_SHOW_HIDDEN, temporarilyShowHidden).apply()

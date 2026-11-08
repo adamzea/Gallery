@@ -81,6 +81,41 @@ class ImageRatingTest {
         assertEquals(RatingResult.UNCHANGED, write(rated, RatingFormat.JPEG, 4).first)
     }
 
+    /** EXIF segment whose IFD0 has Rating and RatingPercent set to 0, as many cameras write them. */
+    private fun exifWithRating(littleEndian: Boolean): ByteArray {
+        val w = ByteWriter().bytes(ascii("Exif\u0000\u0000"))
+        fun u16(v: Int) = if (littleEndian) w.u16le(v) else w.u16be(v)
+        fun u32(v: Long) = if (littleEndian) w.u32le(v) else w.u32be(v)
+        w.bytes(ascii(if (littleEndian) "II" else "MM")); u16(42); u32(8)
+        u16(3)
+        u16(0x010F); u16(2); u32(4); w.bytes(ascii("Pix\u0000")) // Make, inline
+        u16(0x4746); u16(3); u32(1); u16(0); u16(0) // Rating
+        u16(0x4749); u16(3); u32(1); u16(0); u16(0) // RatingPercent
+        u32(0)
+        return segment(0xE1, w.toByteArray())
+    }
+
+    private fun exifRatings(jpeg: ByteArray, littleEndian: Boolean): Pair<Int, Int> {
+        val entries = 2 + 4 + 6 + 8 + 2 // SOI, segment header, "Exif\0\0", TIFF header, entry count
+        fun u16(i: Int) = if (littleEndian) jpeg.u16le(i) else jpeg.u16be(i)
+        assertEquals(0x4746, u16(entries + 12))
+        assertEquals(0x4749, u16(entries + 24))
+        return u16(entries + 12 + 8) to u16(entries + 24 + 8)
+    }
+
+    @Test
+    fun jpegUpdatesExistingExifRatingTags() {
+        for (littleEndian in listOf(true, false)) {
+            val original = jpeg(exifWithRating(littleEndian), dqt)
+            val (_, rated) = write(original, RatingFormat.JPEG, 4)
+            assertEquals(4 to 75, exifRatings(rated, littleEndian))
+            assertTrue(jpegXmp(rated)!!.contains("xmp:Rating=\"4\""))
+
+            val (_, cleared) = write(rated, RatingFormat.JPEG, null)
+            assertEquals(0 to 0, exifRatings(cleared, littleEndian))
+        }
+    }
+
     @Test
     fun jpegRejectsCorruptData() {
         assertEquals(RatingResult.FAILED, write(ascii("not a jpeg"), RatingFormat.JPEG, 4).first)
