@@ -128,12 +128,14 @@ object XmpRating {
 
         // No rdf:Description at all, add one right inside rdf:RDF
         val rdf = Regex("""<rdf:RDF(?:\s[^>]*)?>""").find(xmp) ?: return null
+        val newDescription = "<rdf:Description rdf:about=\"\" xmlns:xmp=\"$XMP_NAMESPACE\" xmp:Rating=\"$stars\"/>"
         if (rdf.value.endsWith("/>")) {
-            return null
+            // an empty, self-closing <rdf:RDF .../> (written by e.g. Xiaomi cameras), open it up
+            val openTag = rdf.value.dropLast(2).trimEnd() + ">"
+            return xmp.substring(0, rdf.range.first) + openTag + newDescription + "</rdf:RDF>" + xmp.substring(rdf.range.last + 1)
         }
 
         val insertAt = rdf.range.last + 1
-        val newDescription = "<rdf:Description rdf:about=\"\" xmlns:xmp=\"$XMP_NAMESPACE\" xmp:Rating=\"$stars\"/>"
         return xmp.substring(0, insertAt) + newDescription + xmp.substring(insertAt)
     }
 }

@@ -50,6 +50,22 @@ class XmpRatingTest {
     }
 
     @Test
+    fun addsDescriptionToSelfClosingRdf() {
+        // exactly what the Xiaomi camera app writes
+        val xmp = "<x:xmpmeta\n  xmlns:x=\"adobe:ns:meta/\"\n  x:xmptk=\"Adobe XMP Core 5.1.2\">\n  <rdf:RDF\n    " +
+            "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"/>\n</x:xmpmeta>\n"
+        val result = XmpRating.update(xmp, 4)!!
+        assertTrue(
+            result.contains(
+                "<rdf:RDF\n    xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">" +
+                    "<rdf:Description rdf:about=\"\" xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\" xmp:Rating=\"4\"/></rdf:RDF>"
+            )
+        )
+        assertTrue(result.endsWith("</x:xmpmeta>\n"))
+        assertFalse(XmpRating.update(result, null)!!.contains("Rating"))
+    }
+
+    @Test
     fun keepsMicrosoftPhotoRatingInSync() {
         val xmp = packet(
             """<rdf:Description rdf:about="" xmlns:xmp="http://ns.adobe.com/xap/1.0/"><xmp:Rating>1</xmp:Rating></rdf:Description>""" +
