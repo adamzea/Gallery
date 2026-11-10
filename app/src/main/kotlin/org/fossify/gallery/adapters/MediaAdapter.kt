@@ -72,6 +72,8 @@ import org.fossify.gallery.extensions.saveRotatedImageToFile
 import org.fossify.gallery.extensions.setAs
 import org.fossify.gallery.extensions.shareMediaPaths
 import org.fossify.gallery.extensions.shareMediumPath
+import org.fossify.gallery.extensions.shouldAskForFavoriteRating
+import org.fossify.gallery.extensions.showFavoriteRatingDialog
 import org.fossify.gallery.extensions.showRestoreConfirmationDialog
 import org.fossify.gallery.extensions.toggleFileVisibility
 import org.fossify.gallery.extensions.tryCopyMoveFilesTo
@@ -79,6 +81,7 @@ import org.fossify.gallery.extensions.updateDBMediaPath
 import org.fossify.gallery.extensions.updateFavorite
 import org.fossify.gallery.extensions.updateFavoritePaths
 import org.fossify.gallery.extensions.updateFavoriteRatings
+import org.fossify.gallery.helpers.DEFAULT_FAVORITE_RATING_STARS
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
@@ -377,9 +380,20 @@ class MediaAdapter(
     }
 
     private fun toggleFavorites(add: Boolean) {
-        activity.updateFavoriteRatings(getSelectedItems().map { it.path }, add)
+        val items = getSelectedItems()
+        if (add && activity.shouldAskForFavoriteRating(items.map { it.path })) {
+            activity.showFavoriteRatingDialog(isFavorite = false, includeZero = false) { stars ->
+                setFavorites(items, true, stars)
+            }
+        } else {
+            setFavorites(items, add, if (add) DEFAULT_FAVORITE_RATING_STARS else null)
+        }
+    }
+
+    private fun setFavorites(items: List<Medium>, add: Boolean, stars: Int?) {
+        activity.updateFavoriteRatings(items.map { it.path }, stars)
         ensureBackgroundThread {
-            getSelectedItems().forEach {
+            items.forEach {
                 it.isFavorite = add
                 activity.updateFavorite(it.path, add)
             }

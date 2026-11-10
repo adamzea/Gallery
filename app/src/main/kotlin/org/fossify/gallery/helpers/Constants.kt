@@ -9,6 +9,8 @@ const val VIEW_TYPE_PREFIX = "view_type_folder_"
 const val SHOW_HIDDEN_MEDIA = "show_hidden_media"
 const val TEMPORARILY_SHOW_HIDDEN = "temporarily_show_hidden"
 const val SAVE_FAVORITE_RATING = "save_favorite_rating"
+const val CHOOSE_FAVORITE_RATING = "choose_favorite_rating"
+const val FAVORITE_RATING_STARS = "favorite_rating_stars"
 const val TEMPORARILY_SHOW_EXCLUDED = "temporarily_show_excluded"
 const val EXCLUDED_PASSWORD_PROTECTION = "excluded_password_protection"
 const val EXCLUDED_PASSWORD_HASH = "excluded_password_hash"
@@ -264,8 +266,9 @@ const val FOLDER_STYLE_ROUNDED_CORNERS = 2
 // animations
 const val THUMBNAIL_FADE_DURATION_MS = 150
 
-// star rating written into a file's metadata when it is marked as favorite
-const val FAVORITE_RATING_STARS = 4
+// star rating written into a file's metadata when it is marked as favorite without picking one
+const val DEFAULT_FAVORITE_RATING_STARS = 4
+const val MAX_RATING_STARS = 5
 
 fun getPermissionToRequest() = if (isTiramisuPlus()) PERMISSION_READ_MEDIA_IMAGES else PERMISSION_WRITE_STORAGE
 

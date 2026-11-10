@@ -91,6 +91,7 @@ class SettingsActivity : SimpleActivity() {
         setupFolderThumbnailStyle()
         setupKeepLastModified()
         setupSaveFavoriteRating()
+        setupChooseFavoriteRating()
         setupEnablePullToRefresh()
         setupAllowZoomingImages()
         setupShowHighestQuality()
@@ -574,7 +575,17 @@ class SettingsActivity : SimpleActivity() {
             handleMediaManagementPrompt {
                 binding.settingsSaveFavoriteRating.toggle()
                 config.saveFavoriteRating = binding.settingsSaveFavoriteRating.isChecked
+                binding.settingsChooseFavoriteRatingHolder.beVisibleIf(config.saveFavoriteRating)
             }
+        }
+    }
+
+    private fun setupChooseFavoriteRating() {
+        binding.settingsChooseFavoriteRatingHolder.beVisibleIf(config.saveFavoriteRating)
+        binding.settingsChooseFavoriteRating.isChecked = config.chooseFavoriteRating
+        binding.settingsChooseFavoriteRatingHolder.setOnClickListener {
+            binding.settingsChooseFavoriteRating.toggle()
+            config.chooseFavoriteRating = binding.settingsChooseFavoriteRating.isChecked
         }
     }
 
@@ -960,6 +971,7 @@ class SettingsActivity : SimpleActivity() {
                 put(DELETE_EMPTY_FOLDERS, config.deleteEmptyFolders)
                 put(KEEP_LAST_MODIFIED, config.keepLastModified)
                 put(SAVE_FAVORITE_RATING, config.saveFavoriteRating)
+                put(CHOOSE_FAVORITE_RATING, config.chooseFavoriteRating)
                 put(SKIP_DELETE_CONFIRMATION, config.skipDeleteConfirmation)
                 put(BOTTOM_ACTIONS, config.bottomActions)
                 put(VISIBLE_BOTTOM_ACTIONS, config.visibleBottomActions)
@@ -1107,6 +1119,7 @@ class SettingsActivity : SimpleActivity() {
                 DELETE_EMPTY_FOLDERS -> config.deleteEmptyFolders = value.toBoolean()
                 KEEP_LAST_MODIFIED -> config.keepLastModified = value.toBoolean()
                 SAVE_FAVORITE_RATING -> config.saveFavoriteRating = value.toBoolean()
+                CHOOSE_FAVORITE_RATING -> config.chooseFavoriteRating = value.toBoolean()
                 SKIP_DELETE_CONFIRMATION -> config.skipDeleteConfirmation = value.toBoolean()
                 BOTTOM_ACTIONS -> config.bottomActions = value.toBoolean()
                 VISIBLE_BOTTOM_ACTIONS -> config.visibleBottomActions = value.toInt()

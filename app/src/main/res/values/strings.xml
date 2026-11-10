@@ -251,7 +251,13 @@
     <string name="manage_bottom_actions">Manage visible bottom actions</string>
     <string name="toggle_favorite">Toggle favorite</string>
     <string name="toggle_file_visibility">Toggle file visibility</string>
-    <string name="save_favorite_rating">Save favorites as a 4-star rating in the file</string>
+    <string name="save_favorite_rating">Save favorites as a star rating in the file</string>
+    <string name="choose_favorite_rating">Choose the star rating when favoriting (4 stars if off)</string>
+    <string name="star_rating">Star rating</string>
+    <plurals name="rating_stars">
+        <item quantity="one">%d star</item>
+        <item quantity="other">%d stars</item>
+    </plurals>
 
     <!-- Errors -->
     <string name="failed_to_load_media">Failed to load media.</string>

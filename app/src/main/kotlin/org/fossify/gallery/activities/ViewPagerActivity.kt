@@ -118,6 +118,8 @@ import org.fossify.gallery.extensions.restoreRecycleBinPath
 import org.fossify.gallery.extensions.saveRotatedImageToFile
 import org.fossify.gallery.extensions.setAs
 import org.fossify.gallery.extensions.shareMediumPath
+import org.fossify.gallery.extensions.shouldAskForFavoriteRating
+import org.fossify.gallery.extensions.showFavoriteRatingDialog
 import org.fossify.gallery.extensions.showFileOnMap
 import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.extensions.toggleFileVisibility
@@ -145,6 +147,7 @@ import org.fossify.gallery.helpers.BOTTOM_ACTION_SHOW_ON_MAP
 import org.fossify.gallery.helpers.BOTTOM_ACTION_SLIDESHOW
 import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_FAVORITE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_VISIBILITY
+import org.fossify.gallery.helpers.DEFAULT_FAVORITE_RATING_STARS
 import org.fossify.gallery.helpers.ColorModeHelper
 import org.fossify.gallery.helpers.DefaultPageTransformer
 import org.fossify.gallery.helpers.FadePageTransformer
@@ -1071,21 +1074,35 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     private fun toggleFavorite() {
         val medium = getCurrentMedium() ?: return
-        medium.isFavorite = !medium.isFavorite
-        ensureBackgroundThread {
-            updateFavorite(medium.path, medium.isFavorite)
-            if (medium.isFavorite) {
-                mFavoritePaths.add(medium.path)
-            } else {
-                mFavoritePaths.remove(medium.path)
+        if (shouldAskForFavoriteRating(listOf(medium.path))) {
+            // the star rating gets stored in the file, so let the user pick it; 0 stars removes it from favorites
+            showFavoriteRatingDialog(medium.isFavorite, includeZero = true) { stars ->
+                setFavorite(medium, stars != null, stars)
             }
+        } else {
+            val isFavorite = !medium.isFavorite
+            setFavorite(medium, isFavorite, if (isFavorite) DEFAULT_FAVORITE_RATING_STARS else null)
+        }
+    }
 
-            runOnUiThread {
-                refreshMenuItems()
+    private fun setFavorite(medium: Medium, isFavorite: Boolean, stars: Int?) {
+        if (medium.isFavorite != isFavorite) {
+            medium.isFavorite = isFavorite
+            ensureBackgroundThread {
+                updateFavorite(medium.path, isFavorite)
+                if (isFavorite) {
+                    mFavoritePaths.add(medium.path)
+                } else {
+                    mFavoritePaths.remove(medium.path)
+                }
+
+                runOnUiThread {
+                    refreshMenuItems()
+                }
             }
         }
 
-        updateFavoriteRatings(listOf(medium.path), medium.isFavorite)
+        updateFavoriteRatings(listOf(medium.path), stars)
     }
 
     private fun printFile() {

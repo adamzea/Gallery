@@ -75,6 +75,15 @@ class Config(context: Context) : BaseConfig(context) {
     var saveFavoriteRating: Boolean
         get() = prefs.getBoolean(SAVE_FAVORITE_RATING, false)
         set(saveFavoriteRating) = prefs.edit().putBoolean(SAVE_FAVORITE_RATING, saveFavoriteRating).apply()
+    var chooseFavoriteRating: Boolean
+        get() = prefs.getBoolean(CHOOSE_FAVORITE_RATING, false)
+        set(chooseFavoriteRating) = prefs.edit().putBoolean(CHOOSE_FAVORITE_RATING, chooseFavoriteRating).apply()
+
+    // the rating picked the last time a file was marked as favorite
+    var favoriteRatingStars: Int
+        get() = prefs.getInt(FAVORITE_RATING_STARS, DEFAULT_FAVORITE_RATING_STARS)
+        set(favoriteRatingStars) = prefs.edit().putInt(FAVORITE_RATING_STARS, favoriteRatingStars).apply()
+
 
     var temporarilyShowHidden: Boolean
         get() = prefs.getBoolean(TEMPORARILY_SHOW_HIDDEN, false)

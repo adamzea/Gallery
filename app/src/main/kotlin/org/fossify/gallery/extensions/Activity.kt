@@ -28,6 +28,7 @@ import com.bumptech.glide.request.RequestOptions
 import com.squareup.picasso.Picasso
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.dialogs.ConfirmationDialog
+import org.fossify.commons.dialogs.RadioGroupDialog
 import org.fossify.commons.dialogs.SecurityDialog
 import org.fossify.commons.extensions.*
 import org.fossify.commons.extensions.getCurrentFormattedDateTime
@@ -35,6 +36,7 @@ import org.fossify.commons.extensions.internalStoragePath
 import org.fossify.commons.helpers.*
 import org.fossify.commons.models.FAQItem
 import org.fossify.commons.models.FileDirItem
+import org.fossify.commons.models.RadioItem
 import org.fossify.gallery.BuildConfig
 import org.fossify.gallery.R
 import org.fossify.gallery.activities.MediaActivity
@@ -46,9 +48,9 @@ import org.fossify.gallery.dialogs.PickDirectoryDialog
 import org.fossify.gallery.dialogs.ResizeMultipleImagesDialog
 import org.fossify.gallery.dialogs.ResizeWithPathDialog
 import org.fossify.gallery.helpers.DIRECTORY
+import org.fossify.gallery.helpers.MAX_RATING_STARS
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.TEMP_FOLDER_NAME
-import org.fossify.gallery.helpers.FAVORITE_RATING_STARS
 import org.fossify.gallery.helpers.rating.FileChannelData
 import org.fossify.gallery.helpers.rating.MediaRating
 import org.fossify.gallery.helpers.rating.RatingResult
@@ -759,12 +761,46 @@ fun Activity.fileRotatedSuccessfully(path: String, lastModified: Long) {
 
 private val ratingLock = Any()
 
+/** Whether the user picks the star rating that marking these files as favorite stores in them. */
+fun BaseSimpleActivity.shouldAskForFavoriteRating(paths: List<String>): Boolean {
+    return config.saveFavoriteRating && config.chooseFavoriteRating && paths.any { MediaRating.formatOf(it) != null }
+}
+
 /**
- * If enabled in the settings, writes the favorite star rating into the metadata of each file (or clears it when
- * [isFavorite] is false). Files in formats without rating support are skipped.
+ * Lets the user pick the star rating to store in favorite files. With [includeZero] the list starts with 0 stars,
+ * which means not a favorite and no rating, and calls back with null. [isFavorite] tells whether the file is a
+ * favorite already. Nothing is called if the dialog is dismissed.
+ */
+fun BaseSimpleActivity.showFavoriteRatingDialog(isFavorite: Boolean, includeZero: Boolean, callback: (stars: Int?) -> Unit) {
+    val items = ArrayList<RadioItem>()
+    if (includeZero) {
+        val label = resources.getQuantityString(R.plurals.rating_stars, 0, 0)
+        val removeLabel = getString(org.fossify.commons.R.string.remove_from_favorites)
+        items.add(RadioItem(0, if (isFavorite) "$label – $removeLabel" else label))
+    }
+
+    for (stars in 1..MAX_RATING_STARS) {
+        val label = resources.getQuantityString(R.plurals.rating_stars, stars, stars)
+        items.add(RadioItem(stars, "${"★".repeat(stars)}  $label"))
+    }
+
+    // the rating already stored in the file isn't known, so only suggest one for new favorites
+    val checkedId = if (isFavorite) -1 else config.favoriteRatingStars
+    RadioGroupDialog(this, items, checkedId, R.string.star_rating) {
+        val stars = (it as Int).takeIf { id -> id > 0 }
+        if (stars != null) {
+            config.favoriteRatingStars = stars
+        }
+        callback(stars)
+    }
+}
+
+/**
+ * If enabled in the settings, writes the star rating into the metadata of each file, or clears it when [stars]
+ * is null (the file is no longer a favorite). Files in formats without rating support are skipped.
  * Call from the UI thread, the work runs in the background.
  */
-fun BaseSimpleActivity.updateFavoriteRatings(paths: List<String>, isFavorite: Boolean) {
+fun BaseSimpleActivity.updateFavoriteRatings(paths: List<String>, stars: Int?) {
     if (!config.saveFavoriteRating) {
         return
     }
@@ -774,7 +810,6 @@ fun BaseSimpleActivity.updateFavoriteRatings(paths: List<String>, isFavorite: Bo
         return
     }
 
-    val stars = if (isFavorite) FAVORITE_RATING_STARS else null
     ensureWriteAccessForAll(supportedPaths.map { it.getParentPath() }.distinct()) {
         ensureBackgroundThread {
             val failed = supportedPaths.count { !writeFileRating(it, stars) }
